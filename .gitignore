@@ -1,3 +1,10 @@
+build/
+.vscode/
+bin/
+lib/
+falkopy.egg-info/
+dist/
+
 # Compiled Object files
 *.slo
 *.lo

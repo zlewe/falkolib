@@ -1,10 +1,12 @@
-cmake_minimum_required(VERSION 2.8) 
+cmake_minimum_required(VERSION 3.4) 
 project(falkolib)
 set(CMAKE_BUILD_TYPE Release)
 add_definitions(-std=c++0x)   # Enabling c++11
 
-SET(falkolib_RUNTIME_OUTPUT_DIRECTORY ${falkolib_SOURCE_DIR}/bin CACHE PATH "Target for the binaries")
-SET(falkolib_LIBRARY_OUTPUT_DIRECTORY ${falkolib_SOURCE_DIR}/lib CACHE PATH "Target for the libraries")
+set(CMAKE_POSITION_INDEPENDENT_CODE ON)
+
+SET(falkolib_RUNTIME_OUTPUT_DIRECTORY ${falkolib_SOURCE_DIR}/build/bin CACHE PATH "Target for the binaries")
+SET(falkolib_LIBRARY_OUTPUT_DIRECTORY ${falkolib_SOURCE_DIR}/build/lib.linux-x86_64-3.8 CACHE PATH "Target for the libraries")
 SET(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${falkolib_LIBRARY_OUTPUT_DIRECTORY})
 SET(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${falkolib_LIBRARY_OUTPUT_DIRECTORY})
 SET(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${falkolib_RUNTIME_OUTPUT_DIRECTORY})
@@ -33,6 +35,15 @@ message(STATUS "include dir: ${falkolib_SOURCE_DIR}/include")
 message(STATUS "include dir: ${falkolib_SOURCE_DIR}/EXTERNAL")
 include_directories(${falkolib_SOURCE_DIR}/include ${falkolib_SOURCE_DIR}/EXTERNAL)  
 
+# ------------------- FETCH PYBIND11 ------------------
+include(FetchContent)
+FetchContent_Declare(
+  pybind11
+  GIT_REPOSITORY https://github.com/pybind/pybind11
+  GIT_TAG        v2.9.2
+)
+FetchContent_MakeAvailable(pybind11)
+
 add_library(falkolib 
   src/Common/HoughSpectrum.cpp
   src/Feature/FALKOExtractor.cpp
@@ -53,6 +64,10 @@ target_link_libraries(testFalkoCC falkolib ${Boost_LIBRARIES})
 add_executable(testKeypointOC test/testKeypointOC.cpp test/testData.cpp)
 target_link_libraries(testKeypointOC falkolib ${Boost_LIBRARIES}) # boost_iostreams boost_system boost_filesystem
 
+# ---------------- python bindings --------------------
+# TODO(risteon): make all python bindings optional
+pybind11_add_module(falkopy SHARED src/python_wrapper.cpp)
+target_link_libraries(falkopy PRIVATE falkolib)
 
 # Option "make install": copy binaries
 INSTALL(TARGETS falkolib 
@@ -60,6 +75,8 @@ INSTALL(TARGETS falkolib
   LIBRARY DESTINATION ${CMAKE_INSTALL_PREFIX}/lib
   ARCHIVE DESTINATION ${CMAKE_INSTALL_PREFIX}/lib
 )
+
+message(STATUS "foo include dir: ${CMAKE_INSTALL_PREFIX}")
 
 # Option "make install": copy headers
 FILE(GLOB headers_Common "${CMAKE_CURRENT_SOURCE_DIR}/include/falkolib/Common/*.h")
